@@ -1,0 +1,27 @@
+telegram:
+  session_name: tg-tldr
+
+groups:
+  - name: "技术群"
+    id: -1001234567890
+    summary_to: -1009999999999
+    # 过滤规则（均为可选）
+    filters:
+      # 屏蔽指定用户（用户 ID 列表）
+      ignore_users: [123456789, 987654321]
+      # 只记录指定用户（与 ignore_users 互斥）
+      # only_users: [111111111]
+      # 屏蔽包含关键词的消息（支持 * 通配符）
+      # 示例："广告" 精确包含，"*广告*" 模糊匹配，"广告*" 以广告开头
+      ignore_keywords: ["*广告*", "*推广*", "免费领取*"]
+      # 只记录包含关键词的消息（与 ignore_keywords 互斥）
+      # only_keywords: ["*技术*", "*代码*"]
+  - name: "闲聊群"
+    id: -1009876543210
+    summary_to: -1009876543210
+
+summary:
+  schedule: "09:00"
+  timezone: "Asia/Shanghai"
+  default_send_to: -1009999999999
+  model: "claude-sonnet-4-20250514"

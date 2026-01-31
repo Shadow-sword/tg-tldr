@@ -1,0 +1,23 @@
+services:
+  tg-tldr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tg-tldr
+    restart: unless-stopped
+    volumes:
+      # 配置文件
+      - ./config.yaml:/app/config.yaml:ro
+      - ./.env:/app/.env:ro
+      # 数据持久化（SQLite 数据库）
+      - ./data:/app/data
+      # Telegram session 文件（首次运行需要交互式登录）
+      - ./tg-tldr.session:/app/tg-tldr.session
+    environment:
+      - TZ=Asia/Shanghai
+    # 首次运行需要交互式登录，使用以下命令：
+    # docker compose run --rm tg-tldr
+    # 登录成功后，session 文件会保存到本地，之后可以后台运行：
+    # docker compose up -d
+    stdin_open: true
+    tty: true

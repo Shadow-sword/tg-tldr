@@ -48,9 +48,7 @@ class Summarizer:
             base_url=config.anthropic_base_url,
         )
 
-    async def summarize_group(
-        self, group: GroupConfig, target_date: date
-    ) -> str | None:
+    async def summarize_group(self, group: GroupConfig, target_date: date) -> str | None:
         """Generate a summary for a group on a specific date."""
         messages = await self.db.get_messages_by_date_and_group(group.id, target_date)
 

@@ -119,9 +119,7 @@ def main() -> None:
 
     subparsers.add_parser("run", help="Run the daemon (default)")
 
-    summary_parser = subparsers.add_parser(
-        "summary", help="Generate summary for a date"
-    )
+    summary_parser = subparsers.add_parser("summary", help="Generate summary for a date")
     summary_parser.add_argument(
         "-d",
         "--date",
@@ -130,9 +128,7 @@ def main() -> None:
         help="Date to summarize (YYYY-MM-DD, default: yesterday)",
     )
 
-    purge_parser = subparsers.add_parser(
-        "purge", help="Delete messages older than a date"
-    )
+    purge_parser = subparsers.add_parser("purge", help="Delete messages older than a date")
     purge_parser.add_argument(
         "before_date",
         type=lambda s: datetime.strptime(s, "%Y-%m-%d").date(),
@@ -142,9 +138,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "summary":
-        target_date = args.date or (
-            date.today() - __import__("datetime").timedelta(days=1)
-        )
+        target_date = args.date or (date.today() - __import__("datetime").timedelta(days=1))
         asyncio.run(run_summary(args.config, target_date))
     elif args.command == "purge":
         asyncio.run(run_purge(args.config, args.before_date))

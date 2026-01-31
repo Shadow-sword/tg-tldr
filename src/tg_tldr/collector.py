@@ -41,9 +41,7 @@ class MessageCollector:
                 self._handle_message,
                 events.NewMessage(chats=group_ids),
             )
-            logger.info(
-                f"Monitoring {len(group_ids)} groups: {list(self._group_names.values())}"
-            )
+            logger.info(f"Monitoring {len(group_ids)} groups: {list(self._group_names.values())}")
 
         return self.client
 
@@ -69,9 +67,7 @@ class MessageCollector:
         sender_name = self._get_sender_name(sender)
 
         if group_config and not group_config.filters.should_record(sender_id, msg.text):
-            logger.debug(
-                f"Filtered message {msg.id} from {sender_name} in {group_name}"
-            )
+            logger.debug(f"Filtered message {msg.id} from {sender_name} in {group_name}")
             return
 
         reply_to_msg_id = None

@@ -1,4 +1,4 @@
-.PHONY: help install run summary lint format clean purge docker-build docker-run docker-up docker-down docker-logs
+.PHONY: help install run summary lint format typecheck ci clean purge docker-build docker-run docker-up docker-down docker-logs
 
 help:  ## 显示帮助信息
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -21,6 +21,14 @@ lint:  ## 代码检查
 format:  ## 代码格式化
 	uv run ruff format src/
 	uv run ruff check --fix src/
+
+typecheck:  ## 类型检查
+	uv run pyright src/
+
+ci:  ## 运行完整 CI 检查（lint + typecheck）
+	uv run ruff check src/
+	uv run ruff format --check src/
+	uv run pyright src/
 
 clean:  ## 清理缓存文件
 	rm -rf __pycache__ .pytest_cache .ruff_cache

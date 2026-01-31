@@ -40,3 +40,8 @@ select = ["E", "F", "I", "UP"]
 pythonVersion = "3.11"
 typeCheckingMode = "basic"
 include = ["src"]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+]

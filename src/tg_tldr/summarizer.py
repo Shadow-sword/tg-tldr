@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 
 import anthropic
+from anthropic.types import TextBlock
 
 from .config import Config, GroupConfig
 from .db import Database, Message
@@ -72,7 +73,11 @@ class Summarizer:
             messages=[{"role": "user", "content": prompt}],
         )
 
-        summary = response.content[0].text
+        content_block = response.content[0]
+        if not isinstance(content_block, TextBlock):
+            logger.error(f"Unexpected content block type: {type(content_block)}")
+            return None
+        summary = content_block.text
 
         await self.db.insert_summary(group.id, group.name, target_date, summary)
         logger.info(f"Summary saved for {group.name} on {target_date}")

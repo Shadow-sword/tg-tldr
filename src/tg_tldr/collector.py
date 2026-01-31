@@ -29,7 +29,7 @@ class MessageCollector:
             self.config.telegram.api_hash,
         )
 
-        await self.client.start()
+        await self.client.start()  # type: ignore[misc]
         logger.info("Telegram client started")
 
         for group in self.config.groups:
@@ -48,7 +48,7 @@ class MessageCollector:
     async def stop(self) -> None:
         """Stop the Telegram client."""
         if self.client:
-            await self.client.disconnect()
+            await self.client.disconnect()  # type: ignore[misc]
             logger.info("Telegram client disconnected")
 
     async def _handle_message(self, event: events.NewMessage.Event) -> None:
@@ -59,6 +59,8 @@ class MessageCollector:
             return
 
         chat_id = event.chat_id
+        if chat_id is None:
+            return
         group_config = self.config.get_group_by_id(chat_id)
         group_name = group_config.name if group_config else str(chat_id)
 

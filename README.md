@@ -125,6 +125,9 @@ make docker-run
 # 登录成功后，后台运行
 make docker-up
 
+# 修改配置后重启
+make docker-restart
+
 # 查看日志
 make docker-logs
 
@@ -147,9 +150,10 @@ make clean         # 清理缓存
 make db-shell      # 打开数据库
 make docker-build  # 构建 Docker 镜像
 make docker-run    # 首次交互式运行
-make docker-up     # 后台启动
-make docker-down   # 停止容器
-make docker-logs   # 查看日志
+make docker-up      # 后台启动
+make docker-restart # 重启容器
+make docker-down    # 停止容器
+make docker-logs    # 查看日志
 make typecheck     # 类型检查
 make ci            # 运行完整 CI 检查
 ```

@@ -54,5 +54,8 @@ docker-up:  ## 后台启动容器
 docker-down:  ## 停止容器
 	docker compose down
 
+docker-restart:  ## 重启容器（配置修改后使用）
+	docker compose restart
+
 docker-logs:  ## 查看容器日志
 	docker compose logs -f

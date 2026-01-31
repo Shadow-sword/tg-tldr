@@ -23,8 +23,10 @@ class MessageCollector:
 
     async def start(self) -> TelegramClient:
         """Start the Telegram client and register message handler."""
+        # Store session file in data directory
+        session_path = self.config.data_dir / self.config.telegram.session_name
         self.client = TelegramClient(
-            self.config.telegram.session_name,
+            str(session_path),
             self.config.telegram.api_id,
             self.config.telegram.api_hash,
         )

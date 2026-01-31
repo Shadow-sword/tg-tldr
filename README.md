@@ -159,7 +159,7 @@ make ci            # 运行完整 CI 检查
 - `data/messages.db` — SQLite 数据库
   - `messages` 表：群聊消息记录
   - `summaries` 表：每日总结历史
-- `tg-tldr.session` — Telegram 登录凭证
+- `data/tg-tldr.session` — Telegram 登录凭证
 
 ## License
 

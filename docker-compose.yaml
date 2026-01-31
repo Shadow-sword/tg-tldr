@@ -9,10 +9,8 @@ services:
       # 配置文件
       - ./config.yaml:/app/config.yaml:ro
       - ./.env:/app/.env:ro
-      # 数据持久化（SQLite 数据库）
+      # 数据持久化（SQLite 数据库 + Telegram session）
       - ./data:/app/data
-      # Telegram session 文件（首次运行需要交互式登录）
-      - ./tg-tldr.session:/app/tg-tldr.session
     environment:
       - TZ=Asia/Shanghai
     # 首次运行需要交互式登录，使用以下命令：

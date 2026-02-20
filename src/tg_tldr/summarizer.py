@@ -1,8 +1,10 @@
 """LLM-powered summary generation using Claude."""
 
 import logging
+import string
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 
 import anthropic
 from anthropic.types import TextBlock
@@ -12,7 +14,19 @@ from .db import Database, Message
 
 logger = logging.getLogger(__name__)
 
-SUMMARY_PROMPT = """你是一个群聊总结助手。请根据以下群聊记录生成一份简洁的每日总结。
+
+class SafeFormatter(string.Formatter):
+    """A string formatter that preserves unknown placeholders as-is."""
+
+    def get_value(
+        self, key: int | str, args: tuple[object, ...], kwargs: dict[str, object]
+    ) -> object:
+        if isinstance(key, str):
+            return kwargs.get(key, "{" + key + "}")
+        return super().get_value(key, args, kwargs)
+
+
+DEFAULT_PROMPT = """你是一个群聊总结助手。请根据以下群聊记录生成一份简洁的每日总结。
 
 要求：
 1. 按话题/讨论线程组织内容
@@ -49,6 +63,22 @@ class Summarizer:
             base_url=config.anthropic_base_url,
         )
 
+    def _resolve_prompt(self, group: GroupConfig) -> str:
+        """Resolve the prompt template for a group.
+
+        Priority: group.prompt > config.summary.prompt > DEFAULT_PROMPT.
+        Supports file: prefix for external prompt files (paths relative to CWD).
+        """
+        raw = group.prompt or self.config.summary.prompt or DEFAULT_PROMPT
+        if raw.startswith("file:"):
+            path = Path(raw[5:])
+            try:
+                raw = path.read_text(encoding="utf-8")
+            except OSError as e:
+                logger.error(f"Failed to read prompt file '{path}' for group '{group.name}': {e}")
+                raise
+        return raw
+
     async def summarize_group(self, group: GroupConfig, target_date: date) -> str | None:
         """Generate a summary for a group on a specific date."""
         messages = await self.db.get_messages_by_date_and_group(group.id, target_date)
@@ -59,10 +89,14 @@ class Summarizer:
 
         formatted = self._format_messages_with_threads(messages)
 
-        prompt = SUMMARY_PROMPT.format(
+        prompt_template = self._resolve_prompt(group)
+        formatter = SafeFormatter()
+        prompt = formatter.format(
+            prompt_template,
             group_name=group.name,
             date=target_date.isoformat(),
             messages=formatted,
+            message_count=str(len(messages)),
         )
 
         logger.info(f"Generating summary for {group.name} ({len(messages)} messages)")

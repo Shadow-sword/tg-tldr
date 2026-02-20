@@ -47,6 +47,7 @@ class GroupConfig:
     id: int
     summary_to: int | None = None
     filters: FilterConfig = field(default_factory=FilterConfig)
+    prompt: str | None = None
 
 
 @dataclass
@@ -57,6 +58,7 @@ class SummaryConfig:
     timezone: str = "Asia/Shanghai"
     default_send_to: int | None = None
     model: str = "claude-sonnet-4-20250514"
+    prompt: str | None = None
 
 
 @dataclass
@@ -131,6 +133,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
                 id=g["id"],
                 summary_to=g.get("summary_to"),
                 filters=filters,
+                prompt=g.get("prompt"),
             )
         )
 
@@ -140,6 +143,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
         timezone=summary_data.get("timezone", "Asia/Shanghai"),
         default_send_to=summary_data.get("default_send_to"),
         model=summary_data.get("model", "claude-sonnet-4-20250514"),
+        prompt=summary_data.get("prompt"),
     )
 
     return Config(

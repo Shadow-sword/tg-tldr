@@ -5,6 +5,14 @@ groups:
   - name: "技术群"
     id: -1001234567890
     summary_to: -1009999999999
+    # 自定义总结提示词（覆盖全局提示词，可选）
+    # 支持占位符：{group_name} {date} {messages} {message_count}
+    # prompt: |
+    #   请以技术视角总结 {group_name} 在 {date} 的讨论。
+    #   共 {message_count} 条消息。
+    #   {messages}
+    # 也可以引用外部文件：
+    # prompt: "file:prompts/tech.txt"
     # 过滤规则（均为可选）
     filters:
       # 屏蔽指定用户（用户 ID 列表）
@@ -25,3 +33,12 @@ summary:
   timezone: "Asia/Shanghai"
   default_send_to: -1009999999999
   model: "claude-sonnet-4-20250514"
+  # 全局总结提示词（覆盖内置默认提示词，可选）
+  # 支持占位符：{group_name} {date} {messages} {message_count}
+  # prompt: |
+  #   你是一个群聊总结助手。请根据以下群聊记录生成总结。
+  #   群聊名称：{group_name}
+  #   日期：{date}
+  #   消息数量：{message_count}
+  #   聊天记录：
+  #   {messages}

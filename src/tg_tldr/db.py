@@ -84,9 +84,29 @@ class Database:
 
             CREATE INDEX IF NOT EXISTS idx_summaries_group_date
                 ON summaries(group_id, date);
+
+            CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                msg_id UNINDEXED,
+                group_id UNINDEXED,
+                text,
+                tokenize='unicode61'
+            );
             """
         )
         await self._conn.commit()
+
+    async def _index_message(self, msg_id: int, group_id: int, text: str) -> None:
+        """为消息建立 FTS 索引。"""
+        from .search import tokenize
+
+        assert self._conn is not None
+        tokenized = tokenize(text)
+        if not tokenized:
+            return
+        await self._conn.execute(
+            "INSERT INTO messages_fts(msg_id, group_id, text) VALUES (?, ?, ?)",
+            (msg_id, group_id, tokenized),
+        )
 
     async def insert_message(self, msg: Message) -> None:
         """Insert a message into the database."""
@@ -108,6 +128,7 @@ class Database:
                 msg.timestamp.isoformat(),
             ),
         )
+        await self._index_message(msg.id, msg.group_id, msg.text)
         await self._conn.commit()
 
     async def get_messages_by_date_and_group(
@@ -223,3 +244,95 @@ class Database:
         )
         await self._conn.commit()
         return cursor.rowcount
+
+    async def search_messages(
+        self,
+        query: str,
+        *,
+        group_id: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        limit: int = 50,
+    ) -> tuple[list[Message], int]:
+        """搜索消息，返回 (匹配消息列表, 总数)。"""
+        from .search import tokenize_query
+
+        assert self._conn is not None
+        tokenized_query = tokenize_query(query)
+        if not tokenized_query:
+            return [], 0
+
+        conditions = ["f.text MATCH ?"]
+        params: list[str | int] = [tokenized_query]
+
+        if group_id is not None:
+            conditions.append("m.group_id = ?")
+            params.append(group_id)
+        if date_from is not None:
+            conditions.append("m.timestamp >= ?")
+            params.append(date_from.isoformat())
+        if date_to is not None:
+            conditions.append("m.timestamp <= ?")
+            params.append(date_to.isoformat())
+
+        where = " AND ".join(conditions)
+
+        count_sql = f"""
+            SELECT count(*)
+            FROM messages_fts f
+            JOIN messages m ON m.id = f.msg_id AND m.group_id = f.group_id
+            WHERE {where}
+        """
+        cursor = await self._conn.execute(count_sql, params)
+        row = await cursor.fetchone()
+        total = row[0] if row else 0
+
+        search_sql = f"""
+            SELECT m.id, m.group_id, m.group_name, m.sender_id, m.sender_name,
+                   m.text, m.reply_to_msg_id, m.timestamp
+            FROM messages_fts f
+            JOIN messages m ON m.id = f.msg_id AND m.group_id = f.group_id
+            WHERE {where}
+            ORDER BY m.timestamp DESC
+            LIMIT ?
+        """
+        cursor = await self._conn.execute(search_sql, [*params, limit])
+        rows = await cursor.fetchall()
+
+        messages = [
+            Message(
+                id=r[0],
+                group_id=r[1],
+                group_name=r[2],
+                sender_id=r[3],
+                sender_name=r[4],
+                text=r[5],
+                reply_to_msg_id=r[6],
+                timestamp=datetime.fromisoformat(r[7]),
+            )
+            for r in rows
+        ]
+        return messages, total
+
+    async def reindex_all(self) -> int:
+        """重建所有消息的 FTS 索引，返回索引数量。"""
+        from .search import tokenize
+
+        assert self._conn is not None
+        await self._conn.execute("DELETE FROM messages_fts")
+
+        cursor = await self._conn.execute("SELECT id, group_id, text FROM messages")
+        rows = await cursor.fetchall()
+
+        count = 0
+        for row in rows:
+            msg_id, group_id, text = row[0], row[1], row[2]
+            tokenized = tokenize(text)
+            if tokenized:
+                await self._conn.execute(
+                    "INSERT INTO messages_fts(msg_id, group_id, text) VALUES (?, ?, ?)",
+                    (msg_id, group_id, tokenized),
+                )
+                count += 1
+        await self._conn.commit()
+        return count

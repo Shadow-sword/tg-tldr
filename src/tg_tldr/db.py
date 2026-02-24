@@ -103,6 +103,11 @@ class Database:
         tokenized = tokenize(text)
         if not tokenized:
             return
+        # 先删除旧条目，避免 INSERT OR REPLACE 导致重复
+        await self._conn.execute(
+            "DELETE FROM messages_fts WHERE msg_id = ? AND group_id = ?",
+            (msg_id, group_id),
+        )
         await self._conn.execute(
             "INSERT INTO messages_fts(msg_id, group_id, text) VALUES (?, ?, ?)",
             (msg_id, group_id, tokenized),
@@ -238,6 +243,13 @@ class Database:
         """Delete messages older than the given date. Returns deleted count."""
         assert self._conn is not None
         cutoff = datetime.combine(before_date, datetime.min.time()).isoformat()
+        # 先清理 FTS 索引中的对应条目
+        await self._conn.execute(
+            """DELETE FROM messages_fts WHERE (msg_id, group_id) IN (
+                SELECT id, group_id FROM messages WHERE timestamp < ?
+            )""",
+            (cutoff,),
+        )
         cursor = await self._conn.execute(
             "DELETE FROM messages WHERE timestamp < ?",
             (cutoff,),

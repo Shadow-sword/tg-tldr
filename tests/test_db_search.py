@@ -219,3 +219,66 @@ async def test_reindex_all(db: Database):
 
     results, total = await db.search_messages("消息")
     assert total == 3
+
+
+@pytest.mark.asyncio
+async def test_no_duplicate_fts_on_replace(db: Database):
+    """INSERT OR REPLACE 不应导致 FTS 重复条目。"""
+    msg = Message(
+        id=1, group_id=-100, group_name="群A", sender_id=1,
+        sender_name="A", text="Python优化", reply_to_msg_id=None,
+        timestamp=datetime(2026, 1, 30, 14, 0),
+    )
+    await db.insert_message(msg)
+    # 再次插入相同 id+group_id（触发 REPLACE）
+    msg.text = "Python优化更新版"
+    await db.insert_message(msg)
+
+    assert db._conn is not None
+    cursor = await db._conn.execute("SELECT count(*) FROM messages_fts")
+    row = await cursor.fetchone()
+    assert row is not None and row[0] == 1
+
+    results, total = await db.search_messages("Python")
+    assert total == 1
+
+
+@pytest.mark.asyncio
+async def test_search_with_special_characters(db: Database):
+    """包含 FTS5 特殊字符的查询不应崩溃。"""
+    msg = Message(
+        id=1, group_id=-100, group_name="群A", sender_id=1,
+        sender_name="A", text="测试双引号和特殊字符", reply_to_msg_id=None,
+        timestamp=datetime(2026, 1, 30, 14, 0),
+    )
+    await db.insert_message(msg)
+
+    # 这些查询不应抛出 OperationalError
+    results, _ = await db.search_messages('test"quote')
+    assert isinstance(results, list)
+
+    results, _ = await db.search_messages("NOT hello")
+    assert isinstance(results, list)
+
+    results, _ = await db.search_messages("hello OR world")
+    assert isinstance(results, list)
+
+
+@pytest.mark.asyncio
+async def test_purge_cleans_fts(db: Database):
+    """purge 应同时清理 FTS 索引。"""
+    msg = Message(
+        id=1, group_id=-100, group_name="群A", sender_id=1,
+        sender_name="A", text="旧消息Python", reply_to_msg_id=None,
+        timestamp=datetime(2025, 1, 1, 10, 0),
+    )
+    await db.insert_message(msg)
+
+    from datetime import date as date_type
+
+    await db.purge_messages_before(date_type(2026, 1, 1))
+
+    assert db._conn is not None
+    cursor = await db._conn.execute("SELECT count(*) FROM messages_fts")
+    row = await cursor.fetchone()
+    assert row is not None and row[0] == 0

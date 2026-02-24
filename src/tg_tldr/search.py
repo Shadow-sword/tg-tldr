@@ -16,11 +16,20 @@ def tokenize(text: str) -> str:
 
 
 def tokenize_query(query: str) -> str:
-    """对搜索关键词进行分词，返回 FTS5 MATCH 查询字符串。"""
+    """对搜索关键词进行分词，返回 FTS5 MATCH 查询字符串。
+
+    每个 token 用双引号包裹，防止 FTS5 语法注入（如 NOT, OR, NEAR 等操作符）。
+    """
     if not query:
         return ""
     tokens = jieba.cut_for_search(query)
-    return " ".join(t for t in tokens if t.strip())
+    safe_tokens = []
+    for t in tokens:
+        t = t.strip()
+        if t:
+            # 转义双引号，防止注入
+            safe_tokens.append(f'"{t.replace(chr(34), chr(34) + chr(34))}"')
+    return " ".join(safe_tokens)
 
 
 def format_results(messages: list[Message], total: int) -> str:
@@ -35,7 +44,7 @@ def format_results(messages: list[Message], total: int) -> str:
     return "\n".join(lines)
 
 
-def format_results_json(messages: list[Message]) -> str:
+def format_results_json(messages: list[Message], total: int) -> str:
     """格式化搜索结果为 JSON。"""
     results = [
         {
@@ -48,4 +57,4 @@ def format_results_json(messages: list[Message]) -> str:
         }
         for msg in messages
     ]
-    return json.dumps(results, ensure_ascii=False, indent=2)
+    return json.dumps({"total": total, "results": results}, ensure_ascii=False, indent=2)

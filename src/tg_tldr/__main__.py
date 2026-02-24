@@ -142,9 +142,8 @@ async def run_search(
             if date_from:
                 dt_from = datetime.strptime(date_from, "%Y-%m-%d")
             if date_to:
-                dt_to = datetime.strptime(date_to, "%Y-%m-%d").replace(
-                    hour=23, minute=59, second=59
-                )
+                d_to = datetime.strptime(date_to, "%Y-%m-%d").date()
+                dt_to = datetime.combine(d_to, datetime.max.time())
 
         results, total = await db.search_messages(
             keyword,
@@ -157,7 +156,7 @@ async def run_search(
         if json_output:
             from .search import format_results_json
 
-            print(format_results_json(results))
+            print(format_results_json(results, total))
         else:
             from .search import format_results
 

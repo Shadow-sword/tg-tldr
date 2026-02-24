@@ -102,6 +102,83 @@ async def run_purge(config_path: str, before_date: date) -> None:
         await db.close()
 
 
+async def run_search(
+    config_path: str,
+    keyword: str,
+    group: str | None,
+    search_date: str | None,
+    date_from: str | None,
+    date_to: str | None,
+    limit: int,
+    json_output: bool,
+) -> None:
+    """搜索消息。"""
+    config = load_config(config_path)
+    db = Database(config.data_dir / "messages.db")
+    await db.connect()
+
+    try:
+        # 解析群组参数
+        group_id: int | None = None
+        if group:
+            try:
+                group_id = int(group)
+            except ValueError:
+                gc = next((g for g in config.groups if g.name == group), None)
+                if gc:
+                    group_id = gc.id
+                else:
+                    logger.error(f"未找到群组: {group}")
+                    sys.exit(1)
+
+        # 解析日期参数
+        dt_from: datetime | None = None
+        dt_to: datetime | None = None
+        if search_date:
+            d = datetime.strptime(search_date, "%Y-%m-%d").date()
+            dt_from = datetime.combine(d, datetime.min.time())
+            dt_to = datetime.combine(d, datetime.max.time())
+        else:
+            if date_from:
+                dt_from = datetime.strptime(date_from, "%Y-%m-%d")
+            if date_to:
+                dt_to = datetime.strptime(date_to, "%Y-%m-%d").replace(
+                    hour=23, minute=59, second=59
+                )
+
+        results, total = await db.search_messages(
+            keyword,
+            group_id=group_id,
+            date_from=dt_from,
+            date_to=dt_to,
+            limit=limit,
+        )
+
+        if json_output:
+            from .search import format_results_json
+
+            print(format_results_json(results))
+        else:
+            from .search import format_results
+
+            print(format_results(results, total))
+    finally:
+        await db.close()
+
+
+async def run_reindex(config_path: str) -> None:
+    """重建 FTS 索引。"""
+    config = load_config(config_path)
+    db = Database(config.data_dir / "messages.db")
+    await db.connect()
+
+    try:
+        count = await db.reindex_all()
+        logger.info(f"已重建 {count} 条消息的 FTS 索引")
+    finally:
+        await db.close()
+
+
 def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -135,6 +212,27 @@ def main() -> None:
         help="Delete messages before this date (YYYY-MM-DD)",
     )
 
+    search_parser = subparsers.add_parser("search", help="搜索消息")
+    search_parser.add_argument("keyword", help="搜索关键词")
+    search_parser.add_argument("-g", "--group", default=None, help="群组名称或 ID")
+    search_parser.add_argument(
+        "-d",
+        "--date",
+        default=None,
+        dest="search_date",
+        help="搜索指定日期 (YYYY-MM-DD)",
+    )
+    search_parser.add_argument(
+        "--from", default=None, dest="date_from", help="起始日期 (YYYY-MM-DD)"
+    )
+    search_parser.add_argument("--to", default=None, dest="date_to", help="截止日期 (YYYY-MM-DD)")
+    search_parser.add_argument(
+        "-n", "--limit", type=int, default=50, help="最多返回条数 (默认: 50)"
+    )
+    search_parser.add_argument("--json", action="store_true", help="JSON 格式输出")
+
+    subparsers.add_parser("reindex", help="重建 FTS 全文搜索索引")
+
     args = parser.parse_args()
 
     if args.command == "summary":
@@ -142,6 +240,21 @@ def main() -> None:
         asyncio.run(run_summary(args.config, target_date))
     elif args.command == "purge":
         asyncio.run(run_purge(args.config, args.before_date))
+    elif args.command == "search":
+        asyncio.run(
+            run_search(
+                args.config,
+                args.keyword,
+                args.group,
+                args.search_date,
+                args.date_from,
+                args.date_to,
+                args.limit,
+                args.json,
+            )
+        )
+    elif args.command == "reindex":
+        asyncio.run(run_reindex(args.config))
     else:
         asyncio.run(run_daemon(args.config))
 

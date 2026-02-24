@@ -1,4 +1,4 @@
-.PHONY: help install run summary lint format typecheck ci clean purge docker-build docker-run docker-up docker-down docker-logs
+.PHONY: help install run summary lint format typecheck ci clean purge search reindex test docker-build docker-run docker-up docker-down docker-logs
 
 help:  ## 显示帮助信息
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -40,6 +40,15 @@ db-shell:  ## 打开 SQLite 数据库
 
 purge:  ## 清理早于指定日期的消息（用法: make purge BEFORE=2026-01-01）
 	uv run python -m tg_tldr purge $(BEFORE)
+
+search:  ## 搜索消息（用法: make search KEYWORD="Python" GROUP="技术群"）
+	uv run python -m tg_tldr search "$(KEYWORD)" $(if $(GROUP),-g "$(GROUP)",) $(if $(LIMIT),-n $(LIMIT),)
+
+reindex:  ## 重建全文搜索索引
+	uv run python -m tg_tldr reindex
+
+test:  ## 运行测试
+	uv run pytest tests/ -v
 
 # Docker 相关命令
 docker-build:  ## 构建 Docker 镜像

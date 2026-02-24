@@ -1,4 +1,6 @@
-.PHONY: help install run summary lint format typecheck ci clean purge search reindex test docker-build docker-run docker-up docker-down docker-logs
+.PHONY: help install run summary lint format typecheck ci clean purge search reindex test \
+	docker-build docker-run docker-up docker-down docker-restart docker-logs \
+	docker-summary docker-summary-date docker-search docker-reindex docker-purge docker-db-shell
 
 help:  ## 显示帮助信息
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -68,3 +70,24 @@ docker-restart:  ## 重启容器（配置修改后使用）
 
 docker-logs:  ## 查看容器日志
 	docker compose logs -f
+
+# Docker 容器内运维命令（容器运行时使用）
+DOCKER_EXEC = docker compose exec tg-tldr python -m tg_tldr
+
+docker-summary:  ## [Docker] 生成昨日总结
+	$(DOCKER_EXEC) summary
+
+docker-summary-date:  ## [Docker] 生成指定日期总结（用法: make docker-summary-date DATE=2026-01-30）
+	$(DOCKER_EXEC) summary -d $(DATE)
+
+docker-search:  ## [Docker] 搜索消息（用法: make docker-search KEYWORD="Python" GROUP="技术群"）
+	$(DOCKER_EXEC) search "$(KEYWORD)" $(if $(GROUP),-g "$(GROUP)",) $(if $(LIMIT),-n $(LIMIT),)
+
+docker-reindex:  ## [Docker] 重建全文搜索索引
+	$(DOCKER_EXEC) reindex
+
+docker-purge:  ## [Docker] 清理早于指定日期的消息（用法: make docker-purge BEFORE=2026-01-01）
+	$(DOCKER_EXEC) purge $(BEFORE)
+
+docker-db-shell:  ## [Docker] 打开 SQLite 数据库
+	docker compose exec tg-tldr sqlite3 data/messages.db

@@ -40,6 +40,15 @@ make docker-build   # 构建镜像
 make docker-run     # 首次交互式运行（登录 Telegram）
 make docker-up      # 后台启动
 make docker-restart # 重启容器
+
+# Docker 容器内运维命令（容器运行时使用）
+make docker-summary                          # 生成昨日总结
+make docker-summary-date DATE=2026-01-30     # 生成指定日期总结
+make docker-search KEYWORD="Python"          # 搜索关键词
+make docker-search KEYWORD="优化" GROUP="技术群"  # 按群组搜索
+make docker-reindex                          # 重建 FTS 全文搜索索引
+make docker-purge BEFORE=2026-01-01          # 清理旧消息
+make docker-db-shell                         # 打开 SQLite
 ```
 
 ## 代码架构

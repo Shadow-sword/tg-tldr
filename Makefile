@@ -43,8 +43,8 @@ db-shell:  ## 打开 SQLite 数据库
 purge:  ## 清理早于指定日期的消息（用法: make purge BEFORE=2026-01-01）
 	uv run python -m tg_tldr purge $(BEFORE)
 
-search:  ## 搜索消息（用法: make search KEYWORD="Python" GROUP="技术群"）
-	uv run python -m tg_tldr search "$(KEYWORD)" $(if $(GROUP),-g "$(GROUP)",) $(if $(LIMIT),-n $(LIMIT),)
+search:  ## 搜索消息（用法: make search KEYWORD="Python" GROUP="技术群" FROM=2026-01-01 TO=2026-01-31）
+	uv run python -m tg_tldr search "$(KEYWORD)" $(if $(GROUP),-g "$(GROUP)",) $(if $(FROM),--from "$(FROM)",) $(if $(TO),--to "$(TO)",) $(if $(LIMIT),-n $(LIMIT),)
 
 reindex:  ## 重建全文搜索索引
 	uv run python -m tg_tldr reindex
@@ -80,8 +80,8 @@ docker-summary:  ## [Docker] 生成昨日总结
 docker-summary-date:  ## [Docker] 生成指定日期总结（用法: make docker-summary-date DATE=2026-01-30）
 	$(DOCKER_EXEC) summary -d $(DATE)
 
-docker-search:  ## [Docker] 搜索消息（用法: make docker-search KEYWORD="Python" GROUP="技术群"）
-	$(DOCKER_EXEC) search "$(KEYWORD)" $(if $(GROUP),-g "$(GROUP)",) $(if $(LIMIT),-n $(LIMIT),)
+docker-search:  ## [Docker] 搜索消息（用法: make docker-search KEYWORD="Python" GROUP="技术群" FROM=2026-01-01 TO=2026-01-31）
+	$(DOCKER_EXEC) search "$(KEYWORD)" $(if $(GROUP),-g "$(GROUP)",) $(if $(FROM),--from "$(FROM)",) $(if $(TO),--to "$(TO)",) $(if $(LIMIT),-n $(LIMIT),)
 
 docker-reindex:  ## [Docker] 重建全文搜索索引
 	$(DOCKER_EXEC) reindex

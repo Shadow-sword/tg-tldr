@@ -30,6 +30,7 @@ make purge BEFORE=2026-01-01  # 清理旧消息
 # 搜索
 make search KEYWORD="Python"          # 搜索关键词
 make search KEYWORD="优化" GROUP="技术群"  # 按群组搜索
+make search KEYWORD="Python" FROM=2026-01-01 TO=2026-01-31  # 按时间段搜索
 make reindex                          # 重建 FTS 全文搜索索引
 
 # 测试
@@ -46,6 +47,7 @@ make docker-summary                          # 生成昨日总结
 make docker-summary-date DATE=2026-01-30     # 生成指定日期总结
 make docker-search KEYWORD="Python"          # 搜索关键词
 make docker-search KEYWORD="优化" GROUP="技术群"  # 按群组搜索
+make docker-search KEYWORD="Python" FROM=2026-01-01 TO=2026-01-31  # 按时间段搜索
 make docker-reindex                          # 重建 FTS 全文搜索索引
 make docker-purge BEFORE=2026-01-01          # 清理旧消息
 make docker-db-shell                         # 打开 SQLite

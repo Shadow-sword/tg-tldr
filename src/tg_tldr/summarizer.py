@@ -79,6 +79,31 @@ class Summarizer:
                 raise
         return raw
 
+    def _extract_summary_text(self, content_blocks: list[object]) -> str | None:
+        """Extract summary text from Anthropic content blocks."""
+        text_parts: list[str] = []
+        block_types: list[str] = []
+
+        for block in content_blocks:
+            block_type = str(getattr(block, "type", type(block).__name__))
+            block_types.append(block_type)
+
+            if isinstance(block, TextBlock):
+                if block.text.strip():
+                    text_parts.append(block.text)
+                continue
+
+            if block_type == "text":
+                raw_text = getattr(block, "text", None)
+                if isinstance(raw_text, str) and raw_text.strip():
+                    text_parts.append(raw_text)
+
+        if text_parts:
+            return "\n\n".join(text_parts)
+
+        logger.error(f"No text block found in Anthropic response. Content block types: {block_types}")
+        return None
+
     async def summarize_group(self, group: GroupConfig, target_date: date) -> str | None:
         """Generate a summary for a group on a specific date."""
         messages = await self.db.get_messages_by_date_and_group(group.id, target_date)
@@ -107,11 +132,9 @@ class Summarizer:
             messages=[{"role": "user", "content": prompt}],
         )
 
-        content_block = response.content[0]
-        if not isinstance(content_block, TextBlock):
-            logger.error(f"Unexpected content block type: {type(content_block)}")
+        summary = self._extract_summary_text(response.content)
+        if summary is None:
             return None
-        summary = content_block.text
 
         await self.db.insert_summary(group.id, group.name, target_date, summary)
         logger.info(f"Summary saved for {group.name} on {target_date}")

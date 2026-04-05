@@ -41,3 +41,4 @@ data/
 # uv
 .uv/
 uv.lock
+.grepai/
